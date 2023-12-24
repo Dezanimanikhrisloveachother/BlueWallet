@@ -1,50 +1,27 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, Image, TouchableOpacity, StyleSheet, ActivityIndicator, useColorScheme, LayoutAnimation } from 'react-native';
+import { ActivityIndicator, Image, LayoutAnimation, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Icon } from 'react-native-elements';
-import Biometric from './class/biometrics';
 import LottieView from 'lottie-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
-import { BlueStorageContext } from './blue_modules/storage-context';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import { isHandset } from './blue_modules/environment';
+import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  biometric: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    marginBottom: 58,
-  },
-  biometricRow: {
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  icon: {
-    width: 64,
-    height: 64,
-  },
-});
+import { BlueStorageContext } from './blue_modules/storage-context';
+import { isHandset } from './blue_modules/environment';
+import Biometric from './class/biometrics';
 
 const UnlockWith = () => {
   const { setWalletsInitialized, isStorageEncrypted, startAndDecrypt } = useContext(BlueStorageContext);
   const { dispatch } = useNavigation();
-  const { unlockOnComponentMount } = useRoute().params;
-  const [biometricType, setBiometricType] = useState(false);
+  const { unlockOnComponentMount } = useRoute().params as { unlockOnComponentMount: boolean };
+  const [biometricType, setBiometricType] = useState<false | string>(false);
   const [isStorageEncryptedEnabled, setIsStorageEncryptedEnabled] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [animationDidFinish, setAnimationDidFinish] = useState(false);
   const colorScheme = useColorScheme();
 
   const initialRender = async () => {
-    let bt = false;
+    let bt: boolean | string = false;
     if (await Biometric.isBiometricUseCapableAndEnabled()) {
       bt = await Biometric.biometricType();
     }
@@ -86,32 +63,36 @@ const UnlockWith = () => {
   };
 
   const renderUnlockOptions = () => {
+    const color = colorScheme === 'dark' ? '#FFFFFF' : '#000000';
     if (isAuthenticating) {
       return <ActivityIndicator />;
-    } else {
-      const color = colorScheme === 'dark' ? '#FFFFFF' : '#000000';
-      if ((biometricType === Biometric.TouchID || biometricType === Biometric.Biometrics) && !isStorageEncryptedEnabled) {
-        return (
-          <TouchableOpacity accessibilityRole="button" disabled={isAuthenticating} onPress={unlockWithBiometrics}>
-            <Icon name="fingerprint" size={64} type="font-awesome5" color={color} />
-          </TouchableOpacity>
-        );
-      } else if (biometricType === Biometric.FaceID && !isStorageEncryptedEnabled) {
-        return (
-          <TouchableOpacity accessibilityRole="button" disabled={isAuthenticating} onPress={unlockWithBiometrics}>
-            <Image
-              source={colorScheme === 'dark' ? require('./img/faceid-default.png') : require('./img/faceid-dark.png')}
-              style={styles.icon}
-            />
-          </TouchableOpacity>
-        );
-      } else if (isStorageEncryptedEnabled) {
-        return (
-          <TouchableOpacity accessibilityRole="button" disabled={isAuthenticating} onPress={unlockWithKey}>
-            <Icon name="lock" size={64} type="font-awesome5" color={color} />
-          </TouchableOpacity>
-        );
-      }
+    }
+
+    if ((biometricType === Biometric.TouchID || biometricType === Biometric.Biometrics) && !isStorageEncryptedEnabled) {
+      return (
+        <TouchableOpacity accessibilityRole="button" disabled={isAuthenticating} onPress={unlockWithBiometrics}>
+          <Icon name="fingerprint" size={64} type="font-awesome5" color={color} />
+        </TouchableOpacity>
+      );
+    }
+
+    if (biometricType === Biometric.FaceID && !isStorageEncryptedEnabled) {
+      return (
+        <TouchableOpacity accessibilityRole="button" disabled={isAuthenticating} onPress={unlockWithBiometrics}>
+          <Image
+            source={colorScheme === 'dark' ? require('./img/faceid-default.png') : require('./img/faceid-dark.png')}
+            style={styles.icon}
+          />
+        </TouchableOpacity>
+      );
+    }
+
+    if (isStorageEncryptedEnabled) {
+      return (
+        <TouchableOpacity accessibilityRole="button" disabled={isAuthenticating} onPress={unlockWithKey}>
+          <Icon name="lock" size={64} type="font-awesome5" color={color} />
+        </TouchableOpacity>
+      );
     }
   };
 
@@ -122,7 +103,9 @@ const UnlockWith = () => {
       setIsStorageEncryptedEnabled(storageIsEncrypted);
       if (!biometricType || storageIsEncrypted) {
         unlockWithKey();
-      } else if (typeof biometricType === 'string') unlockWithBiometrics();
+      } else if (typeof biometricType === 'string') {
+        unlockWithBiometrics();
+      }
     }
     setAnimationDidFinish(true);
   };
@@ -136,5 +119,29 @@ const UnlockWith = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  biometric: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    marginBottom: 58,
+  },
+  biometricRow: {
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  icon: {
+    width: 64,
+    height: 64,
+  },
+});
 
 export default UnlockWith;
